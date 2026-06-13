@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+@theme {
+  --color-areia: #D8CFC4;
+  --color-linho: #F3EFEA;
+  --color-oliva: #7A8C6D;
+  --color-terra: #8B6B4F;
+  --color-grafite: #3F3A37;
+  
+  --font-serif: "Cormorant Garamond", serif;
+  --font-sans: "Inter", sans-serif;
+}

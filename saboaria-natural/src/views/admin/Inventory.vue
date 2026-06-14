@@ -50,7 +50,7 @@
               <span class="text-[10px] font-bold uppercase tracking-widest text-oliva">Ativo</span>
             </td>
             <td class="px-8 py-6 text-right">
-              <button class="text-stone-300 hover:text-oliva mr-4"><EditIcon :size="18" /></button>
+              <button @click="openEdit(product)" class="text-stone-300 hover:text-oliva mr-4"><EditIcon :size="18" /></button>
               <button class="text-stone-300 hover:text-red-500"><TrashIcon :size="18" /></button>
             </td>
           </tr>
@@ -129,6 +129,78 @@
         </form>
       </div>
     </div>
+
+    <!-- Modal for Editing -->
+    <div v-if="showEditModal" class="fixed inset-0 z-[100] flex items-center justify-center px-4">
+      <div class="absolute inset-0 bg-grafite/40 backdrop-blur-sm" @click="showEditModal = false"></div>
+      <div class="relative bg-white w-full max-w-4xl p-10 rounded-[40px] shadow-2xl border border-areia overflow-y-auto max-h-[90vh]">
+        <div class="flex justify-between items-center mb-8">
+          <h2 class="text-3xl font-serif font-bold">Editar Produto</h2>
+          <button @click="showEditModal = false" class="text-stone-400 hover:text-grafite"><XIcon :size="24" /></button>
+        </div>
+
+        <form @submit.prevent="handleEditProduct" class="space-y-8">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Basic Info -->
+            <div class="space-y-6">
+              <h3 class="text-xl font-serif">Informações Básicas</h3>
+              <div>
+                <label class="block text-[10px] uppercase tracking-widest text-stone-400 font-bold mb-2">Nome</label>
+                <input v-model="editProduct.nome" type="text" required class="w-full border border-stone-200 rounded-2xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-oliva/20 focus:border-oliva" />
+              </div>
+              <div>
+                <label class="block text-[10px] uppercase tracking-widest text-stone-400 font-bold mb-2">Descrição</label>
+                <textarea v-model="editProduct.descricao" required class="w-full border border-stone-200 rounded-2xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-oliva/20 focus:border-oliva h-24"></textarea>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-[10px] uppercase tracking-widest text-stone-400 font-bold mb-2">Grupo de Precificação</label>
+                  <select v-model="editProduct.grupoPrecificacaoId" required class="w-full border border-stone-200 rounded-2xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-oliva/20 focus:border-oliva">
+                    <option v-for="group in store.pricingGroups" :key="group.id" :value="group.id">{{ group.name }}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[10px] uppercase tracking-widest text-stone-400 font-bold mb-2">Categoria</label>
+                  <select v-model="editProduct.categoriaId" required class="w-full border border-stone-200 rounded-2xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-oliva/20 focus:border-oliva">
+                    <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.nome }}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Technical Details -->
+            <div class="space-y-6">
+              <h3 class="text-xl font-serif">Detalhes Técnicos</h3>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-[10px] uppercase tracking-widest text-stone-400 font-bold mb-2">Peso (g)</label>
+                  <input v-model.number="editProduct.peso" type="number" required class="w-full border border-stone-200 rounded-2xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-oliva/20 focus:border-oliva" />
+                </div>
+                <div>
+                  <label class="block text-[10px] uppercase tracking-widest text-stone-400 font-bold mb-2">Dimensões</label>
+                  <input v-model="editProduct.dimensoes" type="text" placeholder="7x5x3cm" required class="w-full border border-stone-200 rounded-2xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-oliva/20 focus:border-oliva" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-[10px] uppercase tracking-widest text-stone-400 font-bold mb-2">Ingredientes</label>
+                <input v-model="editProduct.ingredientes" type="text" required class="w-full border border-stone-200 rounded-2xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-oliva/20 focus:border-oliva" />
+              </div>
+              <div>
+                <label class="block text-[10px] uppercase tracking-widest text-stone-400 font-bold mb-2">Aroma</label>
+                <input v-model="editProduct.aroma" type="text" class="w-full border border-stone-200 rounded-2xl px-5 py-3 focus:outline-none focus:ring-2 focus:ring-oliva/20 focus:border-oliva" />
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end space-x-4 pt-8 border-t border-areia">
+            <button type="button" @click="showEditModal = false" class="px-8 py-4 rounded-2xl text-sm font-medium text-stone-500 hover:bg-stone-50 transition-colors">Cancelar</button>
+            <button type="submit" :disabled="saving" class="bg-oliva text-white px-12 py-4 rounded-2xl font-bold hover:bg-terra transition-all shadow-lg shadow-oliva/20 disabled:opacity-50">
+              {{ saving ? 'Salvando...' : 'Salvar Alterações' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -143,6 +215,59 @@ const saving = ref(false);
 const products = ref<any[]>([]);
 const categories = ref<any[]>([]);
 const produtoStats = ref<Record<number, { preco: number | null; estoque: number | null }>>({});
+
+const showEditModal = ref(false);
+const editingProductId = ref<number | null>(null);
+const editProduct = reactive({
+  nome: '',
+  descricao: '',
+  peso: 100,
+  dimensoes: '',
+  ingredientes: '',
+  aroma: '',
+  grupoPrecificacaoId: null as number | null,
+  categoriaId: null as number | null,
+});
+
+const openEdit = (product: any) => {
+  editingProductId.value = product.id;
+  Object.assign(editProduct, {
+    nome: product.nome,
+    descricao: product.descricao,
+    peso: product.peso ?? 100,
+    dimensoes: product.dimensoes ?? '',
+    ingredientes: product.ingredientes ?? '',
+    aroma: product.aroma ?? '',
+    grupoPrecificacaoId: product.grupoPrecificacao?.id ?? null,
+    categoriaId: product.categoria?.id ?? null,
+  });
+  showEditModal.value = true;
+};
+
+const handleEditProduct = async () => {
+  if (!editingProductId.value) return;
+  saving.value = true;
+  try {
+    await apiClient.put(`/produtos/${editingProductId.value}`, {
+      nome: editProduct.nome,
+      descricao: editProduct.descricao,
+      peso: editProduct.peso,
+      dimensoes: editProduct.dimensoes,
+      ingredientes: editProduct.ingredientes,
+      aroma: editProduct.aroma,
+      grupoPrecificacao: editProduct.grupoPrecificacaoId ? { id: editProduct.grupoPrecificacaoId } : null,
+      categoria: editProduct.categoriaId ? { id: editProduct.categoriaId } : null,
+    });
+    showEditModal.value = false;
+    await fetchProducts();
+    fetchEstoqueInfo();
+  } catch (e) {
+    console.error('Erro ao editar produto:', e);
+    alert('Erro ao salvar alterações. Verifique os dados e tente novamente.');
+  } finally {
+    saving.value = false;
+  }
+};
 
 const newProduct = reactive({
   nome: '',
